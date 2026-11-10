@@ -343,14 +343,14 @@
 <body>
   <header class="app-header">
     <h1 id="hdrTitle">NWUFPA Matrice 4T scoring</h1>
-    <div class="sub" id="hdrSub">Tian Gorrie field trial</div>
+    <div class="sub" id="hdrSub">Tian Gorrie, Stenden South Africa, thesis trial</div>
   </header>
 
   <main class="wrap">
     <!-- SETUP -->
     <section id="screen-setup">
       <div class="card">
-        <p class="hint">Each rater uses their own phone. Sit apart and do not discuss scores until both of you have finished the run. Watch the clip once, at normal speed, with no rewinding or pausing.</p>
+        <p class="hint">Please use your own phone. Sit apart and do not discuss scores until both of you have finished the run. Watch the clip once, at normal speed, with no rewinding or pausing.</p>
         <p class="banner" id="offlineRule">Open this link once with a signal before you go to the field. After that the page will load with no signal, and you can add it to your home screen.</p>
         <p class="label">Rater</p>
         <div class="choice-row" style="margin-bottom:12px">
@@ -374,11 +374,11 @@
       <div class="card">
         <h2 style="font-size:1rem;margin-bottom:8px;color:var(--navy)">How to score</h2>
         <ul class="instr">
-          <li>Tian will tell you which questions apply to the run. Leave the others unselected.</li>
+          <li>I will tell you which questions apply to the run. Leave the others unselected.</li>
           <li>For each question, tap 0, 1 or 2. The wording under each score is the official anchor.</li>
-          <li>You may add a short answer (for example a location or direction). Tian times each answer from the start of the clip and can enter the seconds.</li>
+          <li>You may add a short answer (for example a location or direction). I will time each answer from the start of the clip and can enter the time here.</li>
           <li>Scores are saved on this phone after every tap, even if the browser closes.</li>
-          <li>At the end of the day, export the file and send it to Tian. Do not use the same phone as the other rater.</li>
+          <li>At the end of the day, export the file and send it to me. Do not use the same phone as the other rater.</li>
         </ul>
       </div>
     </section>
@@ -412,12 +412,12 @@
           <button type="button" class="btn ghost" id="btnBackList">Back</button>
         </div>
       </div>
-      <p class="banner">Score only the questions Tian says apply. Leave the others unselected. Blank is not the same as 0.</p>
+      <p class="banner">Score only the questions I say apply. Leave the others unselected. Blank is not the same as 0.</p>
       <div id="questions"></div>
       <div class="card">
-        <label class="label" for="runTime">Time to answer (mm:ss) (Tian, optional)</label>
+        <label class="label" for="runTime">Time to answer (mm:ss) (I will enter this, optional)</label>
         <input id="runTime" class="time-input time-empty" type="text" inputmode="numeric" pattern="[0-9:]*" maxlength="8" autocomplete="off" enterkeyhint="done" aria-label="Time to answer in minutes and seconds" value="00:00" data-digits="">
-        <label class="label" for="runNotes" style="margin-top:10px">Other comments from the rater</label>
+        <label class="label" for="runNotes" style="margin-top:10px">Your other comments</label>
         <textarea id="runNotes" placeholder="Location, direction, which source, or any other comment"></textarea>
       </div>
       <div class="toolbar">
@@ -993,7 +993,7 @@
   function updateHeader() {
     if (!$("screen-setup").classList.contains("hidden")) {
       $("hdrTitle").textContent = "NWUFPA Matrice 4T scoring";
-      $("hdrSub").textContent = "Set up this phone for one rater";
+      $("hdrSub").textContent = "Tian Gorrie, Stenden South Africa, thesis trial";
     } else {
       $("hdrTitle").textContent = raterLabel();
       $("hdrSub").textContent = "Day " + state.day + "  ·  " + (state.date || "");
@@ -1310,7 +1310,7 @@
       if (r.notes) out.push("  Notes: " + r.notes);
     }
     out.push("");
-    out.push("CSV follows (you can copy all of this to Tian):");
+    out.push("CSV follows (you can copy all of this and send it to me):");
     out.push("");
     out.push(toCSV(rows));
     return out.join("\n");
@@ -1454,7 +1454,7 @@
       var done = false;
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(function () {
-          showFlash("Copied. You can paste it into WhatsApp or email.");
+          showFlash("Copied. You can paste it into WhatsApp or email and send it to me.");
         }).catch(function () {
           try { done = document.execCommand("copy"); } catch (e) {}
           showFlash(done ? "Copied" : "Select the text and copy it yourself");

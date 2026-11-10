@@ -1,7 +1,7 @@
 {
   "name": "NWUFPA Matrice 4T trial scoring",
   "short_name": "Trial scoring",
-  "description": "Offline scoring sheet for Tian Gorrie's NWUFPA Matrice 4T veld fire reconnaissance trials.",
+  "description": "My offline scoring sheet for the NWUFPA Matrice 4T veld fire reconnaissance trials. Tian Gorrie, Stenden South Africa.",
   "start_url": "./",
   "scope": "./",
   "id": "./",

@@ -1,0 +1,1537 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0F4761">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="format-detection" content="telephone=no">
+<meta name="apple-mobile-web-app-title" content="Trial scoring">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<title>NWUFPA trial scoring</title>
+<style>
+  :root {
+    --navy: #0F4761;
+    --navy-dark: #0A3144;
+    --ink: #12232C;
+    --muted: #4A5C66;
+    --line: #D5DEE3;
+    --bg: #F4F6F7;
+    --card: #FFFFFF;
+    --ok: #1B6B3A;
+    --ok-bg: #E5F4EA;
+    --mid: #8A5A00;
+    --mid-bg: #FFF3D6;
+    --bad: #8B1E1E;
+    --bad-bg: #F8E4E4;
+    --accent: #0F4761;
+    --shadow: 0 1px 3px rgba(15, 71, 97, 0.12);
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bot: env(safe-area-inset-bottom, 0px);
+    --tap: 48px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.4;
+    min-height: 100%;
+  }
+  body { padding-bottom: calc(12px + var(--safe-bot)); }
+  button, input, select, textarea {
+    font: inherit;
+    color: inherit;
+  }
+  button { cursor: pointer; }
+  h1, h2, h3 { margin: 0; font-weight: 700; }
+  .app-header {
+    position: sticky; top: 0; z-index: 20;
+    background: var(--navy);
+    color: #fff;
+    padding: calc(10px + var(--safe-top)) 14px 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  }
+  .app-header h1 { font-size: 1.05rem; letter-spacing: 0.01em; }
+  .app-header .sub { font-size: 0.8rem; opacity: 0.9; margin-top: 2px; }
+  .wrap { padding: 12px 14px 24px; max-width: 720px; margin: 0 auto; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px;
+    margin: 0 0 12px;
+    box-shadow: var(--shadow);
+  }
+  .label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 6px;
+  }
+  .choice-row { display: flex; gap: 8px; }
+  .choice-row.col { flex-direction: column; }
+  .choice {
+    flex: 1;
+    min-height: var(--tap);
+    border: 2px solid var(--navy);
+    background: #fff;
+    color: var(--navy);
+    border-radius: 10px;
+    font-weight: 700;
+    padding: 10px 8px;
+  }
+  .choice[aria-pressed="true"] {
+    background: var(--navy);
+    color: #fff;
+  }
+  input[type="text"], input[type="date"], input[type="number"], textarea, select {
+    width: 100%;
+    min-height: var(--tap);
+    border: 1.5px solid #B7C4CB;
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: #fff;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  input[type="date"] { min-height: 48px; }
+  textarea { min-height: 72px; resize: vertical; }
+  input:focus, textarea:focus, select:focus, button:focus-visible {
+    outline: 3px solid #7EB6D0;
+    outline-offset: 1px;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 52px;
+    border: 0;
+    border-radius: 12px;
+    font-weight: 700;
+    padding: 12px 14px;
+    background: var(--navy);
+    color: #fff;
+  }
+  .btn:disabled { opacity: 0.45; }
+  .btn.secondary {
+    background: #fff;
+    color: var(--navy);
+    border: 2px solid var(--navy);
+  }
+  .btn.ghost {
+    background: transparent;
+    color: var(--navy);
+    border: 0;
+    min-height: 44px;
+    text-decoration: underline;
+    width: auto;
+    padding: 8px;
+    white-space: nowrap;
+    flex: 0 0 auto;
+  }
+  .btn.danger {
+    background: #fff;
+    color: var(--bad);
+    border: 2px solid var(--bad);
+  }
+  .btn.ok { background: var(--ok); }
+  .stack { display: flex; flex-direction: column; gap: 10px; }
+  .hint { font-size: 0.92rem; color: var(--ink); margin: 0 0 10px; }
+  .muted { color: var(--muted); font-size: 0.88rem; }
+  .instr { margin: 0; padding-left: 1.15rem; }
+  .instr li { margin: 0 0 6px; }
+  .progress-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    margin: 0 0 10px; gap: 8px;
+  }
+  .pill {
+    display: inline-block;
+    background: var(--ok-bg);
+    color: var(--ok);
+    font-weight: 700;
+    font-size: 0.8rem;
+    padding: 3px 8px;
+    border-radius: 999px;
+  }
+  .run-item {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    text-align: left;
+    background: #fff;
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    padding: 10px 12px;
+    min-height: 64px;
+    gap: 10px;
+    margin: 0 0 8px;
+  }
+  .run-item.done { border-color: #8FCB9B; background: #F3FAF5; }
+  .run-item.progress { border-color: #E0C16A; background: #FFFBF0; }
+  .run-item .ord {
+    flex: 0 0 28px;
+    font-weight: 700;
+    color: var(--muted);
+    padding-top: 2px;
+  }
+  .run-item .meta { flex: 1; }
+  .run-item .code { font-weight: 800; font-size: 1.05rem; }
+  .run-item .set { font-size: 0.86rem; color: var(--muted); margin-top: 2px; }
+  .run-item .status {
+    flex: 0 0 auto;
+    align-self: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--muted);
+  }
+  .run-item.done .status { color: var(--ok); }
+  .run-item.progress .status { color: var(--mid); }
+  .jump {
+    display: flex; gap: 8px; align-items: center; margin-bottom: 10px;
+  }
+  .jump select { flex: 1; }
+  .q-block { margin: 0 0 16px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+  .q-block:last-of-type { border-bottom: 0; }
+  .q-head { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 8px; }
+  .q-id {
+    flex: 0 0 auto;
+    background: var(--navy);
+    color: #fff;
+    font-weight: 800;
+    border-radius: 8px;
+    padding: 4px 8px;
+    font-size: 0.9rem;
+  }
+  .q-text { font-weight: 600; font-size: 1rem; }
+  .score-btn {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    width: 100%;
+    text-align: left;
+    border: 2px solid #C5D0D6;
+    background: #fff;
+    border-radius: 12px;
+    padding: 10px 12px;
+    min-height: 56px;
+    margin: 0 0 6px;
+  }
+  .score-btn .num {
+    flex: 0 0 32px;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800;
+    margin-top: 1px;
+  }
+  .score-btn .anchor { flex: 1; font-size: 0.92rem; }
+  .score-btn[data-v="0"][aria-pressed="true"] {
+    background: var(--bad-bg);
+    border-color: var(--bad);
+    color: var(--bad);
+  }
+  .score-btn[data-v="1"][aria-pressed="true"] {
+    background: var(--mid-bg);
+    border-color: var(--mid);
+    color: var(--mid);
+  }
+  .score-btn[data-v="2"][aria-pressed="true"] {
+    background: var(--ok-bg);
+    border-color: var(--ok);
+    color: var(--ok);
+  }
+  .q-extra { display: flex; gap: 8px; margin-top: 6px; align-items: center; }
+  .q-extra .time-wrap { flex: 0 0 124px; }
+  .q-extra .notes-wrap { flex: 1; }
+  .q-extra input[type="text"] { min-height: 44px; }
+  input.time-input {
+    min-height: 48px;
+    padding: 8px 6px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 1.1rem;
+    letter-spacing: 0.06em;
+    max-width: 180px;
+  }
+  input.time-input.time-empty { color: var(--muted); }
+  input.time-input.time-overflow {
+    border-color: var(--mid);
+    background: var(--mid-bg);
+  }
+  .toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .footer-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+  .hidden { display: none !important; }
+  .banner {
+    background: #E8F2F6;
+    border: 1px solid #C5D8E0;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+  }
+  .modal-back {
+    position: fixed; inset: 0;
+    background: rgba(10, 20, 28, 0.55);
+    z-index: 40;
+    display: flex; align-items: flex-end; justify-content: center;
+    padding: 12px 12px calc(12px + var(--safe-bot));
+  }
+  .modal {
+    background: #fff;
+    width: 100%;
+    max-width: 720px;
+    border-radius: 16px;
+    padding: 16px;
+    max-height: 85vh;
+    overflow: auto;
+  }
+  .modal h2 { margin-bottom: 8px; font-size: 1.1rem; }
+  .text-out {
+    width: 100%;
+    min-height: 180px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+    white-space: pre;
+    border: 1.5px solid #B7C4CB;
+    border-radius: 10px;
+    padding: 10px;
+  }
+  .saved-flash {
+    position: fixed;
+    left: 50%;
+    top: calc(12px + var(--safe-top) + 52px);
+    transform: translateX(-50%);
+    background: var(--navy-dark);
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    z-index: 30;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .saved-flash.show { opacity: 1; }
+  .run-settings {
+    font-size: 0.92rem;
+    margin-top: 4px;
+  }
+  @media (min-width: 640px) {
+    .score-stack { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+    .score-stack .score-btn { margin: 0; }
+  }
+</style>
+</head>
+<body>
+  <header class="app-header">
+    <h1 id="hdrTitle">NWUFPA Matrice 4T scoring</h1>
+    <div class="sub" id="hdrSub">Tian Gorrie field trial</div>
+  </header>
+
+  <main class="wrap">
+    <!-- SETUP -->
+    <section id="screen-setup">
+      <div class="card">
+        <p class="hint">Each rater uses their own phone. Sit apart and do not discuss scores until both of you have finished the run. Watch the clip once, at normal speed, with no rewinding or pausing.</p>
+        <p class="banner" id="offlineRule">Open this link once with a signal before you go to the field. After that the page will load with no signal, and you can add it to your home screen.</p>
+        <p class="label">Rater</p>
+        <div class="choice-row" style="margin-bottom:12px">
+          <button type="button" class="choice" id="pickA" aria-pressed="false" data-rater="Rater A">Rater A</button>
+          <button type="button" class="choice" id="pickB" aria-pressed="false" data-rater="Rater B">Rater B</button>
+        </div>
+        <label class="label" for="raterName">Name or code (optional)</label>
+        <input id="raterName" type="text" autocomplete="name" placeholder="Your name or code" style="margin-bottom:12px">
+        <p class="label">Trial day</p>
+        <div class="choice-row" style="margin-bottom:12px">
+          <button type="button" class="choice day-pick" aria-pressed="false" data-day="1">Day 1</button>
+          <button type="button" class="choice day-pick" aria-pressed="false" data-day="2">Day 2</button>
+          <button type="button" class="choice day-pick" aria-pressed="false" data-day="3">Day 3</button>
+        </div>
+        <label class="label" for="trialDate">Date</label>
+        <input id="trialDate" type="date" style="margin-bottom:16px">
+        <div class="stack">
+          <button type="button" class="btn" id="btnStart">Open today's run list</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2 style="font-size:1rem;margin-bottom:8px;color:var(--navy)">How to score</h2>
+        <ul class="instr">
+          <li>Tian will tell you which questions apply to the run. Leave the others unselected.</li>
+          <li>For each question, tap 0, 1 or 2. The wording under each score is the official anchor.</li>
+          <li>You may add a short answer (for example a location or direction). Tian times each answer from the start of the clip and can enter the seconds.</li>
+          <li>Scores are saved on this phone after every tap, even if the browser closes.</li>
+          <li>At the end of the day, export the file and send it to Tian. Do not use the same phone as the other rater.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- LIST -->
+    <section id="screen-list" class="hidden">
+      <div class="progress-bar">
+        <strong id="listProgress">0 of 24 saved</strong>
+        <button type="button" class="btn ghost" id="btnChangeSetup">Change rater or day</button>
+      </div>
+      <div class="jump">
+        <label class="label" for="jumpCode" style="margin:0">Jump to code</label>
+        <select id="jumpCode"></select>
+        <button type="button" class="btn secondary" id="btnJump" style="width:auto;min-height:48px;padding:8px 14px">Go</button>
+      </div>
+      <div id="runList"></div>
+      <div class="footer-actions">
+        <button type="button" class="btn ok" id="btnExport">Export scores</button>
+        <button type="button" class="btn danger" id="btnClear">Clear today's scores on this phone</button>
+      </div>
+    </section>
+
+    <!-- RUN -->
+    <section id="screen-run" class="hidden">
+      <div class="card" style="position:sticky;top:calc(58px + var(--safe-top));z-index:10">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+          <div>
+            <h2 id="runTitle" style="font-size:1.2rem;color:var(--navy)">D05</h2>
+            <div class="run-settings" id="runSettings"></div>
+          </div>
+          <button type="button" class="btn ghost" id="btnBackList">Back</button>
+        </div>
+      </div>
+      <p class="banner">Score only the questions Tian says apply. Leave the others unselected. Blank is not the same as 0.</p>
+      <div id="questions"></div>
+      <div class="card">
+        <label class="label" for="runTime">Time to answer (mm:ss) (Tian, optional)</label>
+        <input id="runTime" class="time-input time-empty" type="text" inputmode="numeric" pattern="[0-9:]*" maxlength="8" autocomplete="off" enterkeyhint="done" aria-label="Time to answer in minutes and seconds" value="00:00" data-digits="">
+        <label class="label" for="runNotes" style="margin-top:10px">Other comments from the rater</label>
+        <textarea id="runNotes" placeholder="Location, direction, which source, or any other comment"></textarea>
+      </div>
+      <div class="toolbar">
+        <button type="button" class="btn ok" id="btnSaveNext">Save and next run</button>
+        <button type="button" class="btn secondary" id="btnSaveList">Save and back to list</button>
+      </div>
+    </section>
+  </main>
+
+  <div id="exportModal" class="modal-back hidden" role="dialog" aria-labelledby="exportTitle">
+    <div class="modal">
+      <h2 id="exportTitle">Export scores</h2>
+      <p class="muted" id="exportSummary"></p>
+      <div class="stack" style="margin:12px 0">
+        <button type="button" class="btn ok" id="btnDlCsv">Download CSV</button>
+        <button type="button" class="btn secondary" id="btnDlJson">Download JSON</button>
+        <button type="button" class="btn secondary hidden" id="btnShare">Share file</button>
+        <button type="button" class="btn secondary" id="btnShowText">Show as text (copy or share)</button>
+        <button type="button" class="btn secondary" id="btnCopyText">Copy text</button>
+      </div>
+      <textarea id="exportText" class="text-out hidden" readonly></textarea>
+      <button type="button" class="btn ghost" id="btnCloseExport">Close</button>
+    </div>
+  </div>
+
+  <div id="clearModal" class="modal-back hidden" role="dialog" aria-labelledby="clearTitle">
+    <div class="modal">
+      <h2 id="clearTitle">Clear today's scores?</h2>
+      <p id="clearMsg">This will delete the scores saved on this phone for the current rater and trial day. This cannot be undone.</p>
+      <div class="stack" style="margin-top:12px">
+        <button type="button" class="btn danger" id="btnClearYes">Yes, clear these scores</button>
+        <button type="button" class="btn secondary" id="btnClearNo">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="flash" class="saved-flash" role="status">Saved</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var QUESTIONS = [
+    {
+      id: "Q1",
+      text: "Can you see the heat from the fire drum or wood pile that represents a hotspot?",
+      anchors: [
+        "No heat seen, or only a decoy called",
+        "Heat seen, but not clearly separated from decoys or not placed",
+        "Heat from the drum or pile clearly seen and placed relative to landmarks"
+      ]
+    },
+    {
+      id: "Q2",
+      text: "Can you point to where the marked heat source is (relative to the track, fence or marker)?",
+      anchors: [
+        "Cannot point to the heat source",
+        "Points to the general area only",
+        "Points to the source clearly relative to the track, fence or marker"
+      ]
+    },
+    {
+      id: "Q3",
+      text: "Can you see the edge of the line of heat sources that represents the fire perimeter?",
+      anchors: [
+        "Cannot see the line of heat sources",
+        "Some sources in the line seen, but the edge cannot be followed",
+        "Edge of the line followed, with most sources in it seen"
+      ]
+    },
+    {
+      id: "Q4",
+      text: "Which way is the smoke from the burn pile drifting, and which source looks hottest?",
+      anchors: [
+        "Cannot say the drift direction or which source looks hottest",
+        "Gives the drift direction or the hottest source, but not both, or with doubt",
+        "Gives both the drift direction and the hottest source clearly"
+      ]
+    },
+    {
+      id: "Q5",
+      text: "Is each heat source inside, on, or across the marked firebreak?",
+      anchors: [
+        "Cannot see the firebreak or place the sources",
+        "Firebreak seen, but some sources not clearly placed inside, on or across it",
+        "Each source clearly placed inside, on or across the firebreak"
+      ]
+    },
+    {
+      id: "Q6",
+      text: "Can you see the small heated containers that represent smouldering mop-up spots?",
+      anchors: [
+        "No small heated containers seen",
+        "Some containers seen, but not separated from each other or not placed",
+        "Individual containers separated and placed"
+      ]
+    },
+    {
+      id: "Q7",
+      text: "Can you see and identify the person or vehicle placed in the area?",
+      anchors: [
+        "Person or vehicle not seen",
+        "Something seen, but not identified as person, vehicle or animal",
+        "Person or vehicle correctly identified and placed"
+      ]
+    }
+  ];
+
+  /* Code, block, height_m, speed_ms, sensor_mode, pattern */
+  var RUNS = {
+    D01: ["D01", "Detection", "40", "10", "Thermal", "Transect"],
+    D02: ["D02", "Detection", "40", "10", "Wide RGB", "Transect"],
+    D03: ["D03", "Detection", "40", "10", "Zoom (tele)", "Transect"],
+    D04: ["D04", "Detection", "40", "10", "Split", "Transect"],
+    D05: ["D05", "Detection", "80", "10", "Thermal", "Transect"],
+    D06: ["D06", "Detection", "80", "10", "Wide RGB", "Transect"],
+    D07: ["D07", "Detection", "80", "10", "Zoom (tele)", "Transect"],
+    D08: ["D08", "Detection", "80", "10", "Split", "Transect"],
+    D09: ["D09", "Detection", "120", "10", "Thermal", "Transect"],
+    D10: ["D10", "Detection", "120", "10", "Wide RGB", "Transect"],
+    D11: ["D11", "Detection", "120", "10", "Zoom (tele)", "Transect"],
+    D12: ["D12", "Detection", "120", "10", "Split", "Transect"],
+    V01: ["V01", "Speed", "40", "5", "Thermal", "Transect"],
+    V02: ["V02", "Speed", "40", "15", "Thermal", "Transect"],
+    V03: ["V03", "Speed", "80", "5", "Thermal", "Transect"],
+    V04: ["V04", "Speed", "80", "15", "Thermal", "Transect"],
+    V05: ["V05", "Speed", "120", "5", "Thermal", "Transect"],
+    V06: ["V06", "Speed", "120", "15", "Thermal", "Transect"],
+    P01: ["P01", "Pattern", "80", "~4", "Thermal", "Hover-orbit"],
+    P02: ["P02", "Pattern", "80", "10", "Thermal", "Lawnmower grid"],
+    P03: ["P03", "Pattern", "120", "~4", "Thermal", "Hover-orbit"],
+    P04: ["P04", "Pattern", "120", "10", "Thermal", "Lawnmower grid"],
+    C01: ["C01", "Control", "80", "10", "Thermal", "Control transect"],
+    C02: ["C02", "Control", "120", "10", "Split", "Control transect"]
+  };
+
+  /* Flying orders: seeds 2026, 2027, 2028 */
+  var DAYS = {
+    1: ["D05","D12","D07","D06","C01","P03","D03","D09","D02","D01","P02","P01",
+        "D10","V03","V01","V04","V02","V06","D08","C02","P04","V05","D11","D04"],
+    2: ["C02","D08","D09","P02","D07","P03","V05","C01","D02","V02","D12","D05",
+        "P04","D10","V04","V06","P01","D06","V01","D11","D01","D03","V03","D04"],
+    3: ["D03","P02","D04","D08","D02","V03","V04","V01","D11","V05","P01","V06",
+        "V02","D10","D05","D07","P04","C01","D09","P03","C02","D01","D06","D12"]
+  };
+
+  var CSV_COLUMNS = [
+    "rater", "day", "date", "run_code", "height_m", "speed_ms", "sensor_mode",
+    "pattern", "Q1", "Q2", "Q3", "Q4", "Q5", "Q6", "Q7", "total", "time_s",
+    "time_mmss", "notes", "timestamp", "run_order", "block", "n_scored",
+    "time_q1", "time_q2", "time_q3", "time_q4", "time_q5", "time_q6", "time_q7",
+    "time_q1_mmss", "time_q2_mmss", "time_q3_mmss", "time_q4_mmss", "time_q5_mmss",
+    "time_q6_mmss", "time_q7_mmss",
+    "notes_q1", "notes_q2", "notes_q3", "notes_q4", "notes_q5", "notes_q6", "notes_q7",
+    "status", "rater_name"
+  ];
+
+  var SETUP_KEY = "gorrieTianRaterScores.setup.v1";
+  var STORE_PREFIX = "gorrieTianRaterScores.v1.";
+
+  var state = {
+    raterId: "",
+    raterName: "",
+    day: "",
+    date: "",
+    scores: {},
+    currentCode: null
+  };
+
+  function $(id) { return document.getElementById(id); }
+
+
+  function pad2(n) {
+    n = String(n);
+    return n.length < 2 ? "0" + n : n;
+  }
+
+  function formatMmssFromSeconds(total) {
+    total = Math.round(Number(total));
+    if (!isFinite(total) || total < 0) return "";
+    return pad2(Math.floor(total / 60)) + ":" + pad2(total % 60);
+  }
+
+  function parseMmssToSeconds(text) {
+    var m = String(text || "").trim().match(/^(\d+):(\d{1,2})$/);
+    if (!m) return null;
+    return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+  }
+
+  function digitsToDisplay(digits) {
+    var d = String(digits || "").replace(/\D/g, "");
+    if (d.length > 4) d = d.slice(0, 4);
+    var padded = ("0000" + d).slice(-4);
+    return padded.slice(0, 2) + ":" + padded.slice(2, 4);
+  }
+
+  function canonStored(secondsVal, mmssVal) {
+    var mmss = (mmssVal == null ? "" : String(mmssVal)).trim();
+    var secRaw = (secondsVal == null ? "" : String(secondsVal)).trim();
+    if (mmss) {
+      var fromMmss = parseMmssToSeconds(mmss);
+      if (fromMmss != null) {
+        return { seconds: fromMmss, mmss: formatMmssFromSeconds(fromMmss) };
+      }
+    }
+    if (!secRaw) return { seconds: "", mmss: "" };
+    if (/^\d+:\d{1,2}$/.test(secRaw)) {
+      var fromText = parseMmssToSeconds(secRaw);
+      return { seconds: fromText, mmss: formatMmssFromSeconds(fromText) };
+    }
+    var n = Number(secRaw);
+    if (!isFinite(n) || n < 0) return { seconds: "", mmss: "" };
+    n = Math.round(n);
+    return { seconds: n, mmss: formatMmssFromSeconds(n) };
+  }
+
+  function hasTimeValue(entry) {
+    if (entry.time_s === 0 || entry.time_s === "0" || entry.time_s || entry.time_mmss) return true;
+    var i, s;
+    for (i = 1; i <= 7; i++) {
+      s = entry["time_q" + i];
+      if (s === 0 || s === "0" || s || entry["time_q" + i + "_mmss"]) return true;
+    }
+    return false;
+  }
+
+  function getTimeDigits(input) {
+    return input.getAttribute("data-digits") || "";
+  }
+
+  function expectedTimeValue(input) {
+    var d = getTimeDigits(input);
+    return d ? digitsToDisplay(d) : "00:00";
+  }
+
+  function renderTimeInput(input, digits, normalize) {
+    digits = String(digits || "").replace(/\D/g, "");
+    if (digits.length > 4) digits = digits.slice(0, 4);
+    if (normalize && digits) {
+      var preview = digitsToDisplay(digits);
+      var secs = parseMmssToSeconds(preview);
+      if (secs != null) {
+        var mmss = formatMmssFromSeconds(secs);
+        var canon = mmss.replace(/\D/g, "").replace(/^0+(?=\d)/, "");
+        digits = canon || "0";
+        input.value = mmss;
+        input.setAttribute("data-digits", digits);
+        input.classList.remove("time-empty");
+        input.classList.remove("time-overflow");
+        return;
+      }
+    }
+    var empty = digits.length === 0;
+    input.setAttribute("data-digits", digits);
+    input.value = empty ? "00:00" : digitsToDisplay(digits);
+    input.classList.toggle("time-empty", empty);
+    if (!empty) {
+      var parts = input.value.split(":");
+      var over = parseInt(parts[1], 10) > 59;
+      input.classList.toggle("time-overflow", over);
+    } else {
+      input.classList.remove("time-overflow");
+    }
+  }
+
+  function placeCaretEnd(input) {
+    try {
+      var len = input.value.length;
+      input.setSelectionRange(len, len);
+    } catch (e) {}
+  }
+
+  function allSelected(input) {
+    try {
+      return input.selectionStart === 0 && input.selectionEnd === input.value.length;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function readTimeWidget(input) {
+    var digits = getTimeDigits(input);
+    if (!digits) return { seconds: "", mmss: "" };
+    var preview = (input.value && /^\d+:\d{2}$/.test(input.value)) ? input.value : digitsToDisplay(digits);
+    var secs = parseMmssToSeconds(preview);
+    if (secs == null) return { seconds: "", mmss: "" };
+    return { seconds: secs, mmss: preview };
+  }
+
+  function fillTimeWidget(input, secondsVal, mmssVal) {
+    var c = canonStored(secondsVal, mmssVal);
+    if (c.seconds === "" && !c.mmss) {
+      renderTimeInput(input, "");
+      return;
+    }
+    var d = String(c.mmss || "").replace(/\D/g, "").replace(/^0+(?=\d)/, "");
+    renderTimeInput(input, d || "0");
+  }
+
+  function saveCurrentTimes() {
+    if (!state.currentCode) return;
+    var entry = getEntry(state.currentCode);
+    writeTimeToEntry(entry, "time_s", "time_mmss", $("runTime"));
+    var i;
+    for (i = 1; i <= 7; i++) {
+      writeTimeToEntry(entry, "time_q" + i, "time_q" + i + "_mmss", $("time_Q" + i));
+    }
+    touchEntry(entry, true);
+    persistScores();
+  }
+
+  function writeTimeToEntry(entry, secondsKey, mmssKey, input) {
+    var t = readTimeWidget(input);
+    entry[secondsKey] = t.seconds;
+    entry[mmssKey] = t.mmss;
+  }
+
+  function bindTimeInput(input) {
+    if (!input || input.getAttribute("data-time-bound") === "1") return;
+    input.setAttribute("data-time-bound", "1");
+    if (!input.getAttribute("data-digits")) renderTimeInput(input, "");
+
+    function addDigits(chunk) {
+      chunk = String(chunk || "").replace(/\D/g, "");
+      if (!chunk) return;
+      var next = allSelected(input) ? chunk : getTimeDigits(input) + chunk;
+      renderTimeInput(input, next);
+      placeCaretEnd(input);
+      saveCurrentTimes();
+    }
+
+    function removeDigit() {
+      var next = allSelected(input) ? "" : getTimeDigits(input).slice(0, -1);
+      renderTimeInput(input, next);
+      placeCaretEnd(input);
+      saveCurrentTimes();
+    }
+
+    input.addEventListener("keydown", function (e) {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === "Backspace" || e.key === "Delete") {
+        e.preventDefault();
+        removeDigit();
+        return;
+      }
+      if (e.key.length === 1 && /\d/.test(e.key)) {
+        e.preventDefault();
+        addDigits(e.key);
+        return;
+      }
+      if (["Tab", "Enter", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "Escape"].indexOf(e.key) >= 0) return;
+      if (e.key.length === 1) e.preventDefault();
+    });
+
+    input.addEventListener("beforeinput", function (e) {
+      var typ = e.inputType || "";
+      if (typ === "insertText" && e.data && /^\d+$/.test(e.data)) {
+        e.preventDefault();
+        addDigits(e.data);
+      } else if (typ === "insertText") {
+        e.preventDefault();
+      } else if (typ === "deleteContentBackward" || typ === "deleteContentForward" || typ === "deleteByCut") {
+        e.preventDefault();
+        removeDigit();
+      } else if (typ === "insertFromPaste" || typ === "insertFromDrop") {
+        e.preventDefault();
+        /* paste event handler applies the digits once */
+      }
+    });
+
+    input.addEventListener("paste", function (e) {
+      e.preventDefault();
+      var text = "";
+      try { text = ((e.clipboardData || window.clipboardData).getData("text") || ""); } catch (err) {}
+      addDigits(text.replace(/\D/g, "").slice(-4));
+    });
+
+    input.addEventListener("focus", function () {
+      placeCaretEnd(input);
+    });
+
+    input.addEventListener("blur", function () {
+      renderTimeInput(input, getTimeDigits(input), true);
+      saveCurrentTimes();
+    });
+
+    input.addEventListener("input", function () {
+      if (input.value === expectedTimeValue(input)) return;
+      var raw = input.value.replace(/\D/g, "");
+      var prev = getTimeDigits(input);
+      var prevDisplay = prev ? ("0000" + prev).slice(-4) : "0000";
+      if (!raw || (prev === "" && (raw === "0000" || raw === "000" || raw === "00" || raw === "0"))) {
+        renderTimeInput(input, "");
+      } else if (raw.length > prevDisplay.length) {
+        renderTimeInput(input, prev + raw.slice(prevDisplay.length));
+      } else if (raw.length < prevDisplay.length) {
+        renderTimeInput(input, prev.slice(0, -1));
+      } else if (raw !== prevDisplay) {
+        renderTimeInput(input, raw.replace(/^0+(?=\d)/, "") || "0");
+      } else {
+        renderTimeInput(input, prev);
+      }
+      placeCaretEnd(input);
+      saveCurrentTimes();
+    });
+  }
+
+
+  function todayISO() {
+    try {
+      return new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Johannesburg" });
+    } catch (e) {
+      var d = new Date();
+      var m = String(d.getMonth() + 1).padStart(2, "0");
+      var day = String(d.getDate()).padStart(2, "0");
+      return d.getFullYear() + "-" + m + "-" + day;
+    }
+  }
+
+  function nowStamp() {
+    try {
+      var parts = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Africa/Johannesburg",
+        year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", second: "2-digit",
+        hourCycle: "h23"
+      }).formatToParts(new Date());
+      var get = function (t) {
+        for (var i = 0; i < parts.length; i++) if (parts[i].type === t) return parts[i].value;
+        return "";
+      };
+      return get("year") + "-" + get("month") + "-" + get("day") + "T" +
+             get("hour") + ":" + get("minute") + ":" + get("second") + "+02:00";
+    } catch (e) {
+      return new Date().toISOString();
+    }
+  }
+
+  function storeKey() {
+    return STORE_PREFIX + String(state.raterId).replace(/\s+/g, "") + ".day" + state.day;
+  }
+
+  function loadSetup() {
+    try {
+      var raw = localStorage.getItem(SETUP_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+
+  function saveSetup() {
+    var data = {
+      raterId: state.raterId,
+      raterName: state.raterName,
+      day: state.day,
+      date: state.date
+    };
+    try { localStorage.setItem(SETUP_KEY, JSON.stringify(data)); }
+    catch (e) { showFlash("Could not save setup on this phone"); }
+  }
+
+  function loadScores() {
+    state.scores = {};
+    if (!state.raterId || !state.day) return;
+    try {
+      var raw = localStorage.getItem(storeKey());
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        state.scores = parsed.scores || parsed || {};
+      }
+    } catch (e) { state.scores = {}; }
+  }
+
+  function persistScores() {
+    if (!state.raterId || !state.day) return false;
+    var payload = {
+      raterId: state.raterId,
+      raterName: state.raterName,
+      day: state.day,
+      date: state.date,
+      updated: nowStamp(),
+      scores: state.scores
+    };
+    try {
+      localStorage.setItem(storeKey(), JSON.stringify(payload));
+      return true;
+    } catch (e) {
+      showFlash("Could not save. Export now if you can.");
+      return false;
+    }
+  }
+
+  function settingsLine(code) {
+    var r = RUNS[code];
+    if (!r) return "";
+    return r[2] + " m, " + r[3] + " m/s, " + r[4] + ", " + r[5];
+  }
+
+  function emptyEntry(code) {
+    return {
+      run_code: code,
+      Q1: "", Q2: "", Q3: "", Q4: "", Q5: "", Q6: "", Q7: "",
+      time_q1: "", time_q2: "", time_q3: "", time_q4: "", time_q5: "", time_q6: "", time_q7: "",
+      time_q1_mmss: "", time_q2_mmss: "", time_q3_mmss: "", time_q4_mmss: "", time_q5_mmss: "", time_q6_mmss: "", time_q7_mmss: "",
+      notes_q1: "", notes_q2: "", notes_q3: "", notes_q4: "", notes_q5: "", notes_q6: "", notes_q7: "",
+      time_s: "",
+      time_mmss: "",
+      notes: "",
+      status: "not_started",
+      timestamp: ""
+    };
+  }
+
+  function getEntry(code) {
+    return state.scores[code] || emptyEntry(code);
+  }
+
+  function isFilled(entry) {
+    var i, q;
+    for (i = 1; i <= 7; i++) {
+      q = entry["Q" + i];
+      if (q === 0 || q === 1 || q === 2 || q === "0" || q === "1" || q === "2") return true;
+    }
+    if (entry.notes || hasTimeValue(entry)) return true;
+    for (i = 1; i <= 7; i++) {
+      if (entry["notes_q" + i]) return true;
+    }
+    return false;
+  }
+
+  function scoredCount(entry) {
+    var n = 0, i, q;
+    for (i = 1; i <= 7; i++) {
+      q = entry["Q" + i];
+      if (q === 0 || q === 1 || q === 2 || q === "0" || q === "1" || q === "2") n += 1;
+    }
+    return n;
+  }
+
+  function scoreTotal(entry) {
+    var t = 0, n = 0, i, q;
+    for (i = 1; i <= 7; i++) {
+      q = entry["Q" + i];
+      if (q === 0 || q === 1 || q === 2 || q === "0" || q === "1" || q === "2") {
+        t += Number(q);
+        n += 1;
+      }
+    }
+    return n ? t : "";
+  }
+
+  function showFlash(msg) {
+    var el = $("flash");
+    el.textContent = msg || "Saved";
+    el.classList.add("show");
+    clearTimeout(showFlash._t);
+    showFlash._t = setTimeout(function () { el.classList.remove("show"); }, 1200);
+  }
+
+  function showScreen(name) {
+    $("screen-setup").classList.toggle("hidden", name !== "setup");
+    $("screen-list").classList.toggle("hidden", name !== "list");
+    $("screen-run").classList.toggle("hidden", name !== "run");
+    window.scrollTo(0, 0);
+    updateHeader();
+  }
+
+  function raterLabel() {
+    var s = state.raterId || "No rater";
+    if (state.raterName) s += " (" + state.raterName + ")";
+    return s;
+  }
+
+  function updateHeader() {
+    if (!$("screen-setup").classList.contains("hidden")) {
+      $("hdrTitle").textContent = "NWUFPA Matrice 4T scoring";
+      $("hdrSub").textContent = "Set up this phone for one rater";
+    } else {
+      $("hdrTitle").textContent = raterLabel();
+      $("hdrSub").textContent = "Day " + state.day + "  ·  " + (state.date || "");
+    }
+  }
+
+  function setRater(id) {
+    state.raterId = id;
+    $("pickA").setAttribute("aria-pressed", id === "Rater A" ? "true" : "false");
+    $("pickB").setAttribute("aria-pressed", id === "Rater B" ? "true" : "false");
+  }
+
+  function setDay(d) {
+    state.day = String(d);
+    var buttons = document.querySelectorAll(".day-pick");
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].setAttribute("aria-pressed", buttons[i].getAttribute("data-day") === state.day ? "true" : "false");
+    }
+  }
+
+  function dayCodes() {
+    return DAYS[state.day] || DAYS[1];
+  }
+
+  function renderList() {
+    var codes = dayCodes();
+    var list = $("runList");
+    var jump = $("jumpCode");
+    var html = "";
+    var jumpHtml = "";
+    var saved = 0;
+    var i, code, run, entry, status, cls, label;
+    for (i = 0; i < codes.length; i++) {
+      code = codes[i];
+      run = RUNS[code];
+      entry = getEntry(code);
+      if (entry.status === "saved") {
+        saved += 1;
+        cls = "done";
+        label = "Saved";
+      } else if (isFilled(entry)) {
+        cls = "progress";
+        label = "In progress";
+      } else {
+        cls = "";
+        label = "Not started";
+      }
+      html += '<button type="button" class="run-item ' + cls + '" data-code="' + code + '">' +
+        '<span class="ord">' + (i + 1) + '</span>' +
+        '<span class="meta"><span class="code">' + code + '</span>' +
+        '<div class="set">' + settingsLine(code) + (run ? " · " + run[1] : "") + '</div></span>' +
+        '<span class="status">' + label + '</span></button>';
+      jumpHtml += '<option value="' + code + '">' + (i + 1) + " · " + code + " · " + settingsLine(code) + "</option>";
+    }
+    list.innerHTML = html;
+    jump.innerHTML = jumpHtml;
+    $("listProgress").textContent = saved + " of " + codes.length + " saved";
+    var items = list.querySelectorAll(".run-item");
+    for (i = 0; i < items.length; i++) {
+      items[i].addEventListener("click", function () {
+        openRun(this.getAttribute("data-code"));
+      });
+    }
+  }
+
+  function renderQuestions() {
+    var box = $("questions");
+    var html = "";
+    var i, q, v;
+    for (i = 0; i < QUESTIONS.length; i++) {
+      q = QUESTIONS[i];
+      html += '<div class="card q-block" data-q="' + q.id + '">';
+      html += '<div class="q-head"><span class="q-id">' + q.id + '</span><div class="q-text">' + q.text + '</div></div>';
+      html += '<div class="score-stack">';
+      for (v = 0; v <= 2; v++) {
+        html += '<button type="button" class="score-btn" data-q="' + q.id + '" data-v="' + v + '" aria-pressed="false">' +
+          '<span class="num">' + v + '</span><span class="anchor">' + q.anchors[v] + '</span></button>';
+      }
+      html += "</div>";
+      html += '<div class="q-extra">';
+      html += '<div class="time-wrap"><label class="label" for="time_' + q.id + '">Time (mm:ss)</label>' +
+        '<input id="time_' + q.id + '" class="time-input time-empty" type="text" inputmode="numeric" pattern="[0-9:]*" maxlength="8" autocomplete="off" enterkeyhint="next" aria-label="Time for ' + q.id + ' in minutes and seconds" value="00:00" data-digits="" data-time="' + q.id + '"></div>';
+      html += '<div class="notes-wrap"><label class="label" for="notes_' + q.id + '">Answer or notes</label>' +
+        '<input id="notes_' + q.id + '" type="text" data-notes="' + q.id + '" placeholder="e.g. location, direction"></div>';
+      html += "</div></div>";
+    }
+    box.innerHTML = html;
+
+    box.querySelectorAll(".score-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var qid = btn.getAttribute("data-q");
+        var val = Number(btn.getAttribute("data-v"));
+        var entry = getEntry(state.currentCode);
+        if (String(entry[qid]) === String(val)) {
+          entry[qid] = "";
+        } else {
+          entry[qid] = val;
+        }
+        touchEntry(entry);
+        paintScores(entry);
+        persistScores();
+      });
+    });
+
+    box.querySelectorAll("input[data-time]").forEach(function (inp) {
+      bindTimeInput(inp);
+    });
+    box.querySelectorAll("input[data-notes]").forEach(function (inp) {
+      inp.addEventListener("input", function () {
+        var entry = getEntry(state.currentCode);
+        entry["notes_" + inp.getAttribute("data-notes").toLowerCase()] = inp.value;
+        touchEntry(entry, true);
+        persistScores();
+      });
+      inp.addEventListener("change", function () {
+        persistScores();
+      });
+    });
+  }
+
+  function touchEntry(entry, keepStatus) {
+    if (!keepStatus || entry.status !== "saved") {
+      entry.status = isFilled(entry) || entry.status === "saved" ? (entry.status === "saved" ? "saved" : "in_progress") : "not_started";
+    }
+    entry.timestamp = nowStamp();
+    state.scores[state.currentCode] = entry;
+  }
+
+  function paintScores(entry) {
+    var buttons = document.querySelectorAll(".score-btn");
+    for (var i = 0; i < buttons.length; i++) {
+      var qid = buttons[i].getAttribute("data-q");
+      var val = buttons[i].getAttribute("data-v");
+      buttons[i].setAttribute("aria-pressed", String(entry[qid]) === String(val) ? "true" : "false");
+    }
+  }
+
+  function fillRunForm(entry) {
+    paintScores(entry);
+    for (var i = 1; i <= 7; i++) {
+      fillTimeWidget($("time_Q" + i), entry["time_q" + i], entry["time_q" + i + "_mmss"]);
+      $("notes_Q" + i).value = entry["notes_q" + i] || "";
+    }
+    fillTimeWidget($("runTime"), entry.time_s, entry.time_mmss);
+    $("runNotes").value = entry.notes || "";
+  }
+
+  function readRunForm() {
+    var entry = getEntry(state.currentCode);
+    writeTimeToEntry(entry, "time_s", "time_mmss", $("runTime"));
+    entry.notes = $("runNotes").value;
+    for (var i = 1; i <= 7; i++) {
+      writeTimeToEntry(entry, "time_q" + i, "time_q" + i + "_mmss", $("time_Q" + i));
+      entry["notes_q" + i] = $("notes_Q" + i).value;
+    }
+    entry.timestamp = nowStamp();
+    state.scores[state.currentCode] = entry;
+    return entry;
+  }
+
+  function openRun(code) {
+    if (!RUNS[code]) return;
+    if (state.currentCode) readRunForm();
+    state.currentCode = code;
+    var codes = dayCodes();
+    var order = codes.indexOf(code) + 1;
+    var run = RUNS[code];
+    $("runTitle").textContent = "Run " + order + " of " + codes.length + "  ·  " + code;
+    $("runSettings").textContent = run[1] + " block  ·  " + settingsLine(code);
+    if (!$("questions").hasChildNodes()) renderQuestions();
+    fillRunForm(getEntry(code));
+    persistScores();
+    showScreen("run");
+  }
+
+  function markSavedAndPersist() {
+    var entry = readRunForm();
+    entry.status = "saved";
+    entry.timestamp = nowStamp();
+    state.scores[state.currentCode] = entry;
+    persistScores();
+    showFlash("Run " + state.currentCode + " saved");
+  }
+
+  function nextCode() {
+    var codes = dayCodes();
+    var i = codes.indexOf(state.currentCode);
+    if (i < 0 || i >= codes.length - 1) return null;
+    return codes[i + 1];
+  }
+
+  function csvEscape(v) {
+    if (v === null || v === undefined) v = "";
+    v = String(v);
+    if (/[",\n\r]/.test(v)) return '"' + v.replace(/"/g, '""') + '"';
+    return v;
+  }
+
+  function rowFor(code, entry) {
+    var run = RUNS[code];
+    var codes = dayCodes();
+    var order = codes.indexOf(code) + 1;
+    return {
+      rater: state.raterId,
+      day: state.day,
+      date: state.date,
+      run_code: code,
+      height_m: run[2],
+      speed_ms: run[3],
+      sensor_mode: run[4],
+      pattern: run[5],
+      Q1: entry.Q1 === 0 || entry.Q1 === "0" ? 0 : (entry.Q1 === "" || entry.Q1 == null ? "" : Number(entry.Q1)),
+      Q2: entry.Q2 === 0 || entry.Q2 === "0" ? 0 : (entry.Q2 === "" || entry.Q2 == null ? "" : Number(entry.Q2)),
+      Q3: entry.Q3 === 0 || entry.Q3 === "0" ? 0 : (entry.Q3 === "" || entry.Q3 == null ? "" : Number(entry.Q3)),
+      Q4: entry.Q4 === 0 || entry.Q4 === "0" ? 0 : (entry.Q4 === "" || entry.Q4 == null ? "" : Number(entry.Q4)),
+      Q5: entry.Q5 === 0 || entry.Q5 === "0" ? 0 : (entry.Q5 === "" || entry.Q5 == null ? "" : Number(entry.Q5)),
+      Q6: entry.Q6 === 0 || entry.Q6 === "0" ? 0 : (entry.Q6 === "" || entry.Q6 == null ? "" : Number(entry.Q6)),
+      Q7: entry.Q7 === 0 || entry.Q7 === "0" ? 0 : (entry.Q7 === "" || entry.Q7 == null ? "" : Number(entry.Q7)),
+      total: scoreTotal(entry),
+      time_s: (function () { var c = canonStored(entry.time_s, entry.time_mmss); return c.seconds; })(),
+      time_mmss: (function () { var c = canonStored(entry.time_s, entry.time_mmss); return c.mmss; })(),
+      notes: entry.notes || "",
+      timestamp: entry.timestamp || "",
+      run_order: order > 0 ? order : "",
+      block: run[1],
+      n_scored: scoredCount(entry),
+      time_q1: canonStored(entry.time_q1, entry.time_q1_mmss).seconds,
+      time_q2: canonStored(entry.time_q2, entry.time_q2_mmss).seconds,
+      time_q3: canonStored(entry.time_q3, entry.time_q3_mmss).seconds,
+      time_q4: canonStored(entry.time_q4, entry.time_q4_mmss).seconds,
+      time_q5: canonStored(entry.time_q5, entry.time_q5_mmss).seconds,
+      time_q6: canonStored(entry.time_q6, entry.time_q6_mmss).seconds,
+      time_q7: canonStored(entry.time_q7, entry.time_q7_mmss).seconds,
+      time_q1_mmss: canonStored(entry.time_q1, entry.time_q1_mmss).mmss,
+      time_q2_mmss: canonStored(entry.time_q2, entry.time_q2_mmss).mmss,
+      time_q3_mmss: canonStored(entry.time_q3, entry.time_q3_mmss).mmss,
+      time_q4_mmss: canonStored(entry.time_q4, entry.time_q4_mmss).mmss,
+      time_q5_mmss: canonStored(entry.time_q5, entry.time_q5_mmss).mmss,
+      time_q6_mmss: canonStored(entry.time_q6, entry.time_q6_mmss).mmss,
+      time_q7_mmss: canonStored(entry.time_q7, entry.time_q7_mmss).mmss,
+      notes_q1: entry.notes_q1 || "", notes_q2: entry.notes_q2 || "", notes_q3: entry.notes_q3 || "",
+      notes_q4: entry.notes_q4 || "", notes_q5: entry.notes_q5 || "", notes_q6: entry.notes_q6 || "",
+      notes_q7: entry.notes_q7 || "",
+      status: entry.status || "",
+      rater_name: state.raterName || ""
+    };
+  }
+
+  function exportRows() {
+    var codes = dayCodes();
+    var rows = [];
+    for (var i = 0; i < codes.length; i++) {
+      var code = codes[i];
+      var entry = getEntry(code);
+      if (entry.status === "saved" || isFilled(entry)) rows.push(rowFor(code, entry));
+    }
+    return rows;
+  }
+
+  function toCSV(rows) {
+    var lines = [CSV_COLUMNS.join(",")];
+    for (var i = 0; i < rows.length; i++) {
+      var line = [];
+      for (var c = 0; c < CSV_COLUMNS.length; c++) {
+        var v = rows[i][CSV_COLUMNS[c]];
+        line.push(csvEscape(v == null ? "" : v));
+      }
+      lines.push(line.join(","));
+    }
+    return lines.join("\r\n") + "\r\n";
+  }
+
+  function fileBase() {
+    var rater = String(state.raterId || "Rater").replace(/\s+/g, "");
+    var day = "Day" + (state.day || "X");
+    var date = state.date || todayISO();
+    return "Gorrie_Tian_scores_" + rater + "_" + day + "_" + date;
+  }
+
+  function downloadFile(filename, text, mime) {
+    try {
+      var blob = new Blob([text], { type: mime || "text/plain;charset=utf-8" });
+      if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+        window.navigator.msSaveOrOpenBlob(blob, filename);
+        return true;
+      }
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function () {
+        URL.revokeObjectURL(url);
+        a.remove();
+      }, 1000);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function readableText(rows) {
+    var out = [];
+    out.push("Tian Gorrie, NWUFPA Matrice 4T trial scores");
+    out.push(raterLabel() + "  |  Day " + state.day + "  |  " + state.date);
+    out.push("Runs with data: " + rows.length + " of " + dayCodes().length);
+    out.push("");
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      out.push(r.run_order + ". " + r.run_code + "  " + r.height_m + " m, " + r.speed_ms + " m/s, " + r.sensor_mode + ", " + r.pattern);
+      out.push("  Q1=" + r.Q1 + " Q2=" + r.Q2 + " Q3=" + r.Q3 + " Q4=" + r.Q4 + " Q5=" + r.Q5 + " Q6=" + r.Q6 + " Q7=" + r.Q7 + "  total=" + r.total + "  time=" + (r.time_mmss || "") + " (" + r.time_s + " s)");
+      if (r.notes) out.push("  Notes: " + r.notes);
+    }
+    out.push("");
+    out.push("CSV follows (you can copy all of this to Tian):");
+    out.push("");
+    out.push(toCSV(rows));
+    return out.join("\n");
+  }
+
+  function openExport() {
+    if (state.currentCode) {
+      readRunForm();
+      persistScores();
+    }
+    var rows = exportRows();
+    $("exportSummary").textContent = rows.length
+      ? (rows.length + " run(s) with scores for " + raterLabel() + ", Day " + state.day + ".")
+      : "No scores entered yet for this rater and day.";
+    $("exportText").value = readableText(rows);
+    $("exportText").classList.add("hidden");
+    var shareBtn = $("btnShare");
+    var canShare = false;
+    try {
+      if (navigator.share && navigator.canShare) {
+        var f = new File(["test"], "t.csv", { type: "text/csv" });
+        canShare = navigator.canShare({ files: [f] }) || true;
+      } else if (navigator.share) {
+        canShare = true;
+      }
+    } catch (e) { canShare = !!navigator.share; }
+    shareBtn.classList.toggle("hidden", !canShare);
+    $("exportModal").classList.remove("hidden");
+  }
+
+  function startDay() {
+    state.raterName = ($("raterName").value || "").trim();
+    state.date = $("trialDate").value || todayISO();
+    if (!state.raterId) {
+      showFlash("Please choose Rater A or Rater B");
+      return;
+    }
+    if (!state.day) {
+      showFlash("Please choose the trial day");
+      return;
+    }
+    if (!state.date) {
+      showFlash("Please enter the date");
+      return;
+    }
+    saveSetup();
+    loadScores();
+    renderList();
+    showScreen("list");
+  }
+
+  function initEvents() {
+    $("pickA").addEventListener("click", function () { setRater("Rater A"); });
+    $("pickB").addEventListener("click", function () { setRater("Rater B"); });
+    document.querySelectorAll(".day-pick").forEach(function (btn) {
+      btn.addEventListener("click", function () { setDay(btn.getAttribute("data-day")); });
+    });
+    $("btnStart").addEventListener("click", startDay);
+    $("btnChangeSetup").addEventListener("click", function () {
+      saveSetup();
+      persistScores();
+      showScreen("setup");
+    });
+    $("btnJump").addEventListener("click", function () {
+      openRun($("jumpCode").value);
+    });
+    $("jumpCode").addEventListener("change", function () { /* wait for Go, or jump immediately */ });
+    $("btnBackList").addEventListener("click", function () {
+      readRunForm();
+      persistScores();
+      renderList();
+      showScreen("list");
+    });
+    bindTimeInput($("runTime"));
+    $("runNotes").addEventListener("input", function () {
+      if (!state.currentCode) return;
+      var entry = getEntry(state.currentCode);
+      entry.notes = $("runNotes").value;
+      touchEntry(entry, true);
+      persistScores();
+    });
+    $("btnSaveNext").addEventListener("click", function () {
+      markSavedAndPersist();
+      var nxt = nextCode();
+      if (nxt) openRun(nxt);
+      else {
+        renderList();
+        showScreen("list");
+        showFlash("Last run of the day saved");
+      }
+    });
+    $("btnSaveList").addEventListener("click", function () {
+      markSavedAndPersist();
+      renderList();
+      showScreen("list");
+    });
+    $("btnExport").addEventListener("click", openExport);
+    $("btnCloseExport").addEventListener("click", function () {
+      $("exportModal").classList.add("hidden");
+    });
+    $("btnDlCsv").addEventListener("click", function () {
+      var rows = exportRows();
+      var ok = downloadFile(fileBase() + ".csv", toCSV(rows), "text/csv;charset=utf-8");
+      if (!ok) {
+        $("exportText").classList.remove("hidden");
+        showFlash("Download blocked. Copy the text instead.");
+      } else {
+        showFlash("CSV download started");
+      }
+    });
+    $("btnDlJson").addEventListener("click", function () {
+      var payload = {
+        rater: state.raterId,
+        rater_name: state.raterName,
+        day: state.day,
+        date: state.date,
+        exported: nowStamp(),
+        rows: exportRows()
+      };
+      var ok = downloadFile(fileBase() + ".json", JSON.stringify(payload, null, 2), "application/json;charset=utf-8");
+      if (!ok) {
+        $("exportText").value = JSON.stringify(payload, null, 2);
+        $("exportText").classList.remove("hidden");
+        showFlash("Download blocked. Copy the text instead.");
+      } else {
+        showFlash("JSON download started");
+      }
+    });
+    $("btnShowText").addEventListener("click", function () {
+      $("exportText").value = readableText(exportRows());
+      $("exportText").classList.remove("hidden");
+      $("exportText").focus();
+      $("exportText").select();
+    });
+    $("btnCopyText").addEventListener("click", function () {
+      var text = $("exportText").classList.contains("hidden") ? readableText(exportRows()) : $("exportText").value;
+      $("exportText").value = text;
+      $("exportText").classList.remove("hidden");
+      $("exportText").focus();
+      $("exportText").select();
+      var done = false;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+          showFlash("Copied. You can paste it into WhatsApp or email.");
+        }).catch(function () {
+          try { done = document.execCommand("copy"); } catch (e) {}
+          showFlash(done ? "Copied" : "Select the text and copy it yourself");
+        });
+      } else {
+        try { done = document.execCommand("copy"); } catch (e) {}
+        showFlash(done ? "Copied" : "Select the text and copy it yourself");
+      }
+    });
+    $("btnShare").addEventListener("click", function () {
+      var rows = exportRows();
+      var csv = toCSV(rows);
+      var name = fileBase() + ".csv";
+      if (navigator.share) {
+        var share = function (data) {
+          navigator.share(data).catch(function () {});
+        };
+        try {
+          var file = new File([csv], name, { type: "text/csv" });
+          if (!navigator.canShare || navigator.canShare({ files: [file] })) {
+            share({ files: [file], title: name, text: "Trial scores for " + raterLabel() + ", Day " + state.day });
+            return;
+          }
+        } catch (e) {}
+        share({ title: name, text: readableText(rows) });
+      }
+    });
+    $("btnClear").addEventListener("click", function () {
+      $("clearMsg").textContent = "This will delete the scores saved on this phone for " +
+        raterLabel() + ", Day " + state.day + ". This cannot be undone. Setup (rater and day) is kept.";
+      $("clearModal").classList.remove("hidden");
+    });
+    $("btnClearNo").addEventListener("click", function () {
+      $("clearModal").classList.add("hidden");
+    });
+    $("btnClearYes").addEventListener("click", function () {
+      state.scores = {};
+      try { localStorage.removeItem(storeKey()); } catch (e) {}
+      $("clearModal").classList.add("hidden");
+      renderList();
+      showFlash("Scores cleared for this rater and day");
+    });
+    $("exportModal").addEventListener("click", function (e) {
+      if (e.target === $("exportModal")) $("exportModal").classList.add("hidden");
+    });
+    $("clearModal").addEventListener("click", function (e) {
+      if (e.target === $("clearModal")) $("clearModal").classList.add("hidden");
+    });
+  }
+
+  function init() {
+    $("trialDate").value = todayISO();
+    var saved = loadSetup();
+    if (saved) {
+      if (saved.raterId) setRater(saved.raterId);
+      if (saved.day) setDay(saved.day);
+      if (saved.raterName) $("raterName").value = saved.raterName;
+      if (saved.date) $("trialDate").value = saved.date;
+    }
+    initEvents();
+    renderQuestions();
+    updateHeader();
+    showScreen("setup");
+    registerServiceWorker();
+  }
+
+  function registerServiceWorker() {
+    if (location.protocol === "file:" || !("serviceWorker" in navigator)) return;
+    function go() {
+      navigator.serviceWorker.register("sw.js", { scope: "./" }).catch(function () {});
+    }
+    if (document.readyState === "complete") go();
+    else window.addEventListener("load", go);
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>

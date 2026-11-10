@@ -1,5 +1,5 @@
-/* NWUFPA Matrice 4T trial scoring. Versioned cache: rater-scoring-v2026-11-10-3 */
-const CACHE_NAME = "rater-scoring-v2026-11-10-3";
+/* NWUFPA Matrice 4T trial scoring. Versioned cache: rater-scoring-v2026-11-10-4 */
+const CACHE_NAME = "rater-scoring-v2026-11-10-4";
 const PRECACHE = [
   "./",
   "./index.html",
@@ -21,16 +21,31 @@ self.addEventListener("install", function (event) {
   );
 });
 
+function purgeOldCaches() {
+  return caches.keys().then(function (keys) {
+    return Promise.all(keys.filter(function (key) {
+      return key !== CACHE_NAME;
+    }).map(function (key) {
+      return caches.delete(key);
+    }));
+  });
+}
+
 self.addEventListener("activate", function (event) {
   event.waitUntil(
-    caches.keys().then(function (keys) {
-      return Promise.all(keys.filter(function (key) {
-        return key !== CACHE_NAME;
-      }).map(function (key) {
-        return caches.delete(key);
-      }));
-    }).then(function () {
+    purgeOldCaches().then(function () {
       return self.clients.claim();
+    })
+  );
+});
+
+self.addEventListener("message", function (event) {
+  if (!event.data || event.data.type !== "purge-old-caches") return;
+  event.waitUntil(
+    purgeOldCaches().then(function () {
+      if (event.ports && event.ports[0]) {
+        event.ports[0].postMessage({ ok: true, cache: CACHE_NAME });
+      }
     })
   );
 });

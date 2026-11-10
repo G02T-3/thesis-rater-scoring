@@ -330,6 +330,14 @@
     transition: opacity 0.2s;
   }
   .saved-flash.show { opacity: 1; }
+  input.access-input {
+    font-size: 1.6rem;
+    letter-spacing: 0.28em;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  #accessError { color: var(--bad); min-height: 1.2em; margin: 8px 0 0; }
   .run-settings {
     font-size: 0.92rem;
     margin-top: 4px;
@@ -347,6 +355,20 @@
   </header>
 
   <main class="wrap">
+    <section id="screen-gate" class="hidden">
+      <div class="card">
+        <h2 style="font-size:1.1rem;margin-bottom:8px;color:var(--navy)">Access code</h2>
+        <p class="hint">Enter the access code I gave you.</p>
+        <p class="banner">Please use this code only on your own phone.</p>
+        <label class="label" for="accessCode">Access code</label>
+        <input id="accessCode" class="access-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" enterkeyhint="done" aria-label="Access code I gave you">
+        <p class="muted" id="accessError" role="alert"></p>
+        <div class="stack" style="margin-top:12px">
+          <button type="button" class="btn" id="btnUnlock">Unlock this phone</button>
+        </div>
+      </div>
+    </section>
+
     <!-- SETUP -->
     <section id="screen-setup">
       <div class="card">
@@ -572,7 +594,7 @@
     "time_q1_mmss", "time_q2_mmss", "time_q3_mmss", "time_q4_mmss", "time_q5_mmss",
     "time_q6_mmss", "time_q7_mmss",
     "notes_q1", "notes_q2", "notes_q3", "notes_q4", "notes_q5", "notes_q6", "notes_q7",
-    "status", "rater_name"
+    "status", "rater_name", "code_id", "device_id", "integrity_tag"
   ];
 
   var SETUP_KEY = "gorrieTianRaterScores.setup.v1";
@@ -584,8 +606,266 @@
     day: "",
     date: "",
     scores: {},
-    currentCode: null
+    currentCode: null,
+    codeId: "",
+    deviceId: "",
+    accessCode: "",
+    raterLocked: false
   };
+
+
+  var ACCESS_KEY = "gorrieTianRaterScores.access.v1";
+  var ACCESS_ENTRIES = [
+    { id: "RA", role: "Rater A", salt: "d1535bcba389f373f236abb320c4bbbd", hash: "904b255c09e052c9921effbe87b5cac86736866ad1fc640ba447552d97b16625" },
+    { id: "RB", role: "Rater B", salt: "d23f25e61a632c77a18343ca851e6ab9", hash: "4e6844a9fc18e97ef06ed86a116b076827d074c9423670a7cbe1e61b71c7206d" },
+    { id: "TG", role: "Pilot", salt: "c34e4d4211c8fc4451a2bafdb75976dd", hash: "a23f20abe4c400143eabdd6670e64193e55f495bc4e616bdd4395ea5fe6220cd" },
+    { id: "S1", role: "Spare 1", salt: "585a7c825c145a264bf8ebec071ddecc", hash: "e7498942b20c052895fb15bae01571fe2847abaebd23e2a5090aea6377b2f344" },
+    { id: "S2", role: "Spare 2", salt: "2de87765082d480e90cf4b03179361ff", hash: "20c9796423de33ab6b29b5d7fa9056295f0db0ae07581c2462b9a7bb72dcbb17" },
+  ];
+
+  function sha256hex(message) {
+    function rotr(x, n) { return (x >>> n) | (x << (32 - n)); }
+    function utf8Bytes(str) {
+      var out = [];
+      for (var i = 0; i < str.length; i++) {
+        var c = str.charCodeAt(i);
+        if (c < 0x80) out.push(c);
+        else if (c < 0x800) out.push(0xc0 | (c >> 6), 0x80 | (c & 63));
+        else if (c >= 0xd800 && c <= 0xdbff && i + 1 < str.length) {
+          var c2 = str.charCodeAt(i + 1);
+          if (c2 >= 0xdc00 && c2 <= 0xdfff) {
+            var u = 0x10000 + ((c & 0x3ff) << 10) + (c2 & 0x3ff);
+            out.push(0xf0 | (u >> 18), 0x80 | ((u >> 12) & 63), 0x80 | ((u >> 6) & 63), 0x80 | (u & 63));
+            i++;
+            continue;
+          }
+          out.push(0xe0 | (c >> 12), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63));
+        } else out.push(0xe0 | (c >> 12), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63));
+      }
+      return out;
+    }
+    var K = [
+      0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+      0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+      0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+      0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+      0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+      0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+      0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+      0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
+    ];
+    var bytes = utf8Bytes(String(message));
+    var bitLen = bytes.length * 8;
+    bytes.push(0x80);
+    while (bytes.length % 64 !== 56) bytes.push(0);
+    var hi = Math.floor(bitLen / 0x100000000);
+    var lo = bitLen >>> 0;
+    bytes.push((hi >>> 24) & 255, (hi >>> 16) & 255, (hi >>> 8) & 255, hi & 255,
+               (lo >>> 24) & 255, (lo >>> 16) & 255, (lo >>> 8) & 255, lo & 255);
+    var H = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+    for (var off = 0; off < bytes.length; off += 64) {
+      var W = [], j;
+      for (j = 0; j < 16; j++) {
+        var k = off + j * 4;
+        W[j] = ((bytes[k] << 24) | (bytes[k + 1] << 16) | (bytes[k + 2] << 8) | bytes[k + 3]) >>> 0;
+      }
+      for (j = 16; j < 64; j++) {
+        var s0 = rotr(W[j - 15], 7) ^ rotr(W[j - 15], 18) ^ (W[j - 15] >>> 3);
+        var s1 = rotr(W[j - 2], 17) ^ rotr(W[j - 2], 19) ^ (W[j - 2] >>> 10);
+        W[j] = (W[j - 16] + s0 + W[j - 7] + s1) >>> 0;
+      }
+      var a = H[0], b = H[1], c = H[2], d = H[3], e = H[4], f = H[5], g = H[6], h = H[7];
+      for (j = 0; j < 64; j++) {
+        var S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
+        var ch = (e & f) ^ (~e & g);
+        var temp1 = (h + S1 + ch + K[j] + W[j]) >>> 0;
+        var S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
+        var maj = (a & b) ^ (a & c) ^ (b & c);
+        var temp2 = (S0 + maj) >>> 0;
+        h = g; g = f; f = e; e = (d + temp1) >>> 0;
+        d = c; c = b; b = a; a = (temp1 + temp2) >>> 0;
+      }
+      H[0] = (H[0] + a) >>> 0; H[1] = (H[1] + b) >>> 0; H[2] = (H[2] + c) >>> 0; H[3] = (H[3] + d) >>> 0;
+      H[4] = (H[4] + e) >>> 0; H[5] = (H[5] + f) >>> 0; H[6] = (H[6] + g) >>> 0; H[7] = (H[7] + h) >>> 0;
+    }
+    var hex = "";
+    for (var i = 0; i < 8; i++) hex += ("00000000" + H[i].toString(16)).slice(-8);
+    return hex;
+  }
+
+
+  function newDeviceId() {
+    try {
+      if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
+    } catch (e) {}
+    var bytes = new Uint8Array(16);
+    if (window.crypto && window.crypto.getRandomValues) window.crypto.getRandomValues(bytes);
+    else for (var i = 0; i < 16; i++) bytes[i] = Math.floor(Math.random() * 256);
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    var hex = [];
+    for (var j = 0; j < 16; j++) hex.push(("0" + bytes[j].toString(16)).slice(-2));
+    return hex.slice(0, 4).join("") + "-" + hex.slice(4, 6).join("") + "-" + hex.slice(6, 8).join("") + "-" + hex.slice(8, 10).join("") + "-" + hex.slice(10).join("");
+  }
+
+  function loadAccess() {
+    try {
+      var raw = localStorage.getItem(ACCESS_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) { return {}; }
+  }
+
+  function saveAccess(data) {
+    try { localStorage.setItem(ACCESS_KEY, JSON.stringify(data)); }
+    catch (e) {}
+  }
+
+  function applyAccessState(data) {
+    if (!data || !data.unlocked) return;
+    state.codeId = data.codeId || "";
+    state.deviceId = data.deviceId || "";
+    state.accessCode = data.accessCode || "";
+    state.raterLocked = false;
+    if (data.raterId) setRater(data.raterId);
+    state.raterLocked = !!data.raterLocked;
+    applyAccessUI();
+  }
+
+  function applyAccessUI() {
+    var locked = state.raterLocked;
+    $("pickA").disabled = locked;
+    $("pickB").disabled = locked;
+    if (locked) {
+      $("pickA").style.opacity = state.raterId === "Rater A" ? "1" : "0.45";
+      $("pickB").style.opacity = state.raterId === "Rater B" ? "1" : "0.45";
+    } else {
+      $("pickA").style.opacity = "1";
+      $("pickB").style.opacity = "1";
+    }
+    var note = $("accessLockNote");
+    if (!note) {
+      note = document.createElement("p");
+      note.id = "accessLockNote";
+      note.className = "muted";
+      var raterLabelEl = document.querySelector("#screen-setup .label");
+      if (raterLabelEl && raterLabelEl.parentNode) {
+        raterLabelEl.parentNode.insertBefore(note, raterLabelEl);
+      }
+    }
+    if (state.codeId === "RA") note.textContent = "This phone is unlocked as Rater A with the access code I gave you.";
+    else if (state.codeId === "RB") note.textContent = "This phone is unlocked as Rater B with the access code I gave you.";
+    else if (state.codeId === "TG") note.textContent = "This phone is unlocked as Pilot with the access code I gave you.";
+    else if (state.codeId === "S1" || state.codeId === "S2") note.textContent = "This phone is unlocked with a spare code. Please choose Rater A or Rater B.";
+    else note.textContent = "";
+    if (state.codeId === "TG") {
+      var existing = $("pickPilot");
+      if (!existing) {
+        var row = $("pickA").parentNode;
+        existing = document.createElement("button");
+        existing.type = "button";
+        existing.className = "choice";
+        existing.id = "pickPilot";
+        existing.textContent = "Pilot";
+        row.appendChild(existing);
+      }
+      existing.setAttribute("aria-pressed", state.raterId === "Pilot" ? "true" : "false");
+      existing.disabled = true;
+      $("pickA").classList.add("hidden");
+      $("pickB").classList.add("hidden");
+    }
+  }
+
+  function matchAccessCode(pin) {
+    pin = String(pin || "").replace(/\D/g, "");
+    if (pin.length !== 6) return null;
+    for (var i = 0; i < ACCESS_ENTRIES.length; i++) {
+      var entry = ACCESS_ENTRIES[i];
+      if (sha256hex(entry.salt + pin) === entry.hash) return entry;
+    }
+    return null;
+  }
+
+  function lockoutRemaining() {
+    var data = loadAccess();
+    var until = Number(data.lockUntil || 0);
+    var ms = until - Date.now();
+    return ms > 0 ? ms : 0;
+  }
+
+  function setAccessError(msg) {
+    $("accessError").textContent = msg || "";
+  }
+
+  function tryUnlock() {
+    var wait = lockoutRemaining();
+    if (wait > 0) {
+      var secs = Math.ceil(wait / 1000);
+      setAccessError("Please wait " + secs + " second" + (secs === 1 ? "" : "s") + " before you try again.");
+      return;
+    }
+    var pin = ($("accessCode").value || "").replace(/\D/g, "");
+    if (pin.length !== 6) {
+      setAccessError("Please enter the 6-digit access code I gave you.");
+      return;
+    }
+    var hit = matchAccessCode(pin);
+    var data = loadAccess();
+    if (!hit) {
+      var fails = Number(data.fails || 0) + 1;
+      data.fails = fails;
+      if (fails >= 5) {
+        data.lockUntil = Date.now() + 60 * 1000;
+        data.fails = 0;
+        saveAccess(data);
+        setAccessError("That code is not right. Please wait one minute before you try again.");
+      } else {
+        saveAccess(data);
+        var left = 5 - fails;
+        setAccessError("That code is not right. You have " + left + (left === 1 ? " try" : " tries") + " left before a short wait.");
+      }
+      return;
+    }
+    var deviceId = data.deviceId || newDeviceId();
+    var raterId = "";
+    var locked = false;
+    if (hit.id === "RA") { raterId = "Rater A"; locked = true; }
+    else if (hit.id === "RB") { raterId = "Rater B"; locked = true; }
+    else if (hit.id === "TG") { raterId = "Pilot"; locked = true; }
+    var next = {
+      unlocked: true,
+      codeId: hit.id,
+      role: hit.role,
+      accessCode: pin,
+      deviceId: deviceId,
+      raterId: raterId,
+      raterLocked: locked,
+      fails: 0,
+      lockUntil: 0
+    };
+    saveAccess(next);
+    $("accessCode").value = "";
+    setAccessError("");
+    applyAccessState(next);
+    showScreen("setup");
+    showFlash("This phone is unlocked");
+  }
+
+  function csvDataColumns() {
+    return CSV_COLUMNS.filter(function (c) { return c !== "integrity_tag"; });
+  }
+
+  function makeIntegrityTag(csvBody) {
+    return sha256hex((state.accessCode || "") + (state.deviceId || "") + csvBody).slice(0, 8);
+  }
+
+  function attachIntegrity(rows) {
+    var dataCols = csvDataColumns();
+    var body = toCSV(rows, dataCols);
+    var tag = makeIntegrityTag(body);
+    for (var i = 0; i < rows.length; i++) rows[i].integrity_tag = tag;
+    return { csv: toCSV(rows, CSV_COLUMNS), tag: tag };
+  }
+
 
   function $(id) { return document.getElementById(id); }
 
@@ -977,6 +1257,7 @@
   }
 
   function showScreen(name) {
+    $("screen-gate").classList.toggle("hidden", name !== "gate");
     $("screen-setup").classList.toggle("hidden", name !== "setup");
     $("screen-list").classList.toggle("hidden", name !== "list");
     $("screen-run").classList.toggle("hidden", name !== "run");
@@ -991,7 +1272,7 @@
   }
 
   function updateHeader() {
-    if (!$("screen-setup").classList.contains("hidden")) {
+    if (!$("screen-setup").classList.contains("hidden") || !$("screen-gate").classList.contains("hidden")) {
       $("hdrTitle").textContent = "NWUFPA Matrice 4T scoring";
       $("hdrSub").textContent = "Tian Gorrie, Stenden South Africa, thesis trial";
     } else {
@@ -1001,9 +1282,12 @@
   }
 
   function setRater(id) {
+    if (state.raterLocked && state.raterId && id !== state.raterId) return;
     state.raterId = id;
     $("pickA").setAttribute("aria-pressed", id === "Rater A" ? "true" : "false");
     $("pickB").setAttribute("aria-pressed", id === "Rater B" ? "true" : "false");
+    var pilot = $("pickPilot");
+    if (pilot) pilot.setAttribute("aria-pressed", id === "Pilot" ? "true" : "false");
   }
 
   function setDay(d) {
@@ -1238,7 +1522,10 @@
       notes_q4: entry.notes_q4 || "", notes_q5: entry.notes_q5 || "", notes_q6: entry.notes_q6 || "",
       notes_q7: entry.notes_q7 || "",
       status: entry.status || "",
-      rater_name: state.raterName || ""
+      rater_name: state.raterName || "",
+      code_id: state.codeId || "",
+      device_id: state.deviceId || "",
+      integrity_tag: ""
     };
   }
 
@@ -1253,12 +1540,13 @@
     return rows;
   }
 
-  function toCSV(rows) {
-    var lines = [CSV_COLUMNS.join(",")];
+  function toCSV(rows, columns) {
+    columns = columns || CSV_COLUMNS;
+    var lines = [columns.join(",")];
     for (var i = 0; i < rows.length; i++) {
       var line = [];
-      for (var c = 0; c < CSV_COLUMNS.length; c++) {
-        var v = rows[i][CSV_COLUMNS[c]];
+      for (var c = 0; c < columns.length; c++) {
+        var v = rows[i][columns[c]];
         line.push(csvEscape(v == null ? "" : v));
       }
       lines.push(line.join(","));
@@ -1266,11 +1554,14 @@
     return lines.join("\r\n") + "\r\n";
   }
 
-  function fileBase() {
+  function fileBase(tag) {
     var rater = String(state.raterId || "Rater").replace(/\s+/g, "");
     var day = "Day" + (state.day || "X");
     var date = state.date || todayISO();
-    return "Gorrie_Tian_scores_" + rater + "_" + day + "_" + date;
+    var id = state.codeId || "XX";
+    var parts = ["Gorrie_Tian_scores", rater, day, date, id];
+    if (tag) parts.push(tag);
+    return parts.join("_");
   }
 
   function downloadFile(filename, text, mime) {
@@ -1310,9 +1601,12 @@
       if (r.notes) out.push("  Notes: " + r.notes);
     }
     out.push("");
+    var packed = attachIntegrity(rows);
+    out.push("code_id=" + (state.codeId || "") + "  device_id=" + (state.deviceId || "") + "  tag=" + packed.tag);
+    out.push("");
     out.push("CSV follows (you can copy all of this and send it to me):");
     out.push("");
-    out.push(toCSV(rows));
+    out.push(packed.csv);
     return out.join("\n");
   }
 
@@ -1345,7 +1639,7 @@
     state.raterName = ($("raterName").value || "").trim();
     state.date = $("trialDate").value || todayISO();
     if (!state.raterId) {
-      showFlash("Please choose Rater A or Rater B");
+      showFlash(state.codeId === "TG" ? "Please continue as Pilot" : "Please choose Rater A or Rater B");
       return;
     }
     if (!state.day) {
@@ -1367,6 +1661,14 @@
     $("pickB").addEventListener("click", function () { setRater("Rater B"); });
     document.querySelectorAll(".day-pick").forEach(function (btn) {
       btn.addEventListener("click", function () { setDay(btn.getAttribute("data-day")); });
+    });
+    $("btnUnlock").addEventListener("click", tryUnlock);
+    $("accessCode").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); tryUnlock(); }
+    });
+    $("accessCode").addEventListener("input", function () {
+      var digits = ($("accessCode").value || "").replace(/\D/g, "").slice(0, 6);
+      if ($("accessCode").value !== digits) $("accessCode").value = digits;
     });
     $("btnStart").addEventListener("click", startDay);
     $("btnChangeSetup").addEventListener("click", function () {
@@ -1413,7 +1715,8 @@
     });
     $("btnDlCsv").addEventListener("click", function () {
       var rows = exportRows();
-      var ok = downloadFile(fileBase() + ".csv", toCSV(rows), "text/csv;charset=utf-8");
+      var packed = attachIntegrity(rows);
+      var ok = downloadFile(fileBase(packed.tag) + ".csv", packed.csv, "text/csv;charset=utf-8");
       if (!ok) {
         $("exportText").classList.remove("hidden");
         showFlash("Download blocked. Copy the text instead.");
@@ -1422,15 +1725,20 @@
       }
     });
     $("btnDlJson").addEventListener("click", function () {
+      var rows = exportRows();
+      var packed = attachIntegrity(rows);
       var payload = {
         rater: state.raterId,
         rater_name: state.raterName,
         day: state.day,
         date: state.date,
+        code_id: state.codeId || "",
+        device_id: state.deviceId || "",
+        integrity_tag: packed.tag,
         exported: nowStamp(),
-        rows: exportRows()
+        rows: rows
       };
-      var ok = downloadFile(fileBase() + ".json", JSON.stringify(payload, null, 2), "application/json;charset=utf-8");
+      var ok = downloadFile(fileBase(packed.tag) + ".json", JSON.stringify(payload, null, 2), "application/json;charset=utf-8");
       if (!ok) {
         $("exportText").value = JSON.stringify(payload, null, 2);
         $("exportText").classList.remove("hidden");
@@ -1466,8 +1774,9 @@
     });
     $("btnShare").addEventListener("click", function () {
       var rows = exportRows();
-      var csv = toCSV(rows);
-      var name = fileBase() + ".csv";
+      var packed = attachIntegrity(rows);
+      var csv = packed.csv;
+      var name = fileBase(packed.tag) + ".csv";
       if (navigator.share) {
         var share = function (data) {
           navigator.share(data).catch(function () {});
@@ -1516,8 +1825,18 @@
     }
     initEvents();
     renderQuestions();
-    updateHeader();
-    showScreen("setup");
+    var access = loadAccess();
+    if (access.unlocked && access.codeId && access.accessCode && matchAccessCode(access.accessCode)) {
+      applyAccessState(access);
+      showScreen("setup");
+    } else {
+      if (access.unlocked) {
+        access.unlocked = false;
+        access.accessCode = "";
+        saveAccess(access);
+      }
+      showScreen("gate");
+    }
     registerServiceWorker();
   }
 

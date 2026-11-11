@@ -548,7 +548,7 @@
     }
   ];
 
-  /* Code, block, height_m, speed_ms, sensor_mode, pattern */
+  /* Code, block, height_m, speed_kmh, sensor_mode, pattern */
   var RUNS = {
     D01: ["D01", "Detection", "15", "10", "Thermal", "Transect"],
     D02: ["D02", "Detection", "15", "10", "Wide RGB", "Transect"],
@@ -568,9 +568,9 @@
     V04: ["V04", "Speed", "30", "15", "Thermal", "Transect"],
     V05: ["V05", "Speed", "45", "5", "Thermal", "Transect"],
     V06: ["V06", "Speed", "45", "15", "Thermal", "Transect"],
-    P01: ["P01", "Pattern", "30", "~4", "Thermal", "Hover-orbit"],
+    P01: ["P01", "Pattern", "30", "~5", "Thermal", "Hover-orbit"],
     P02: ["P02", "Pattern", "30", "10", "Thermal", "Lawnmower grid"],
-    P03: ["P03", "Pattern", "45", "~4", "Thermal", "Hover-orbit"],
+    P03: ["P03", "Pattern", "45", "~5", "Thermal", "Hover-orbit"],
     P04: ["P04", "Pattern", "45", "10", "Thermal", "Lawnmower grid"],
     C01: ["C01", "Control", "30", "10", "Thermal", "Control transect"],
     C02: ["C02", "Control", "45", "10", "Split", "Control transect"]
@@ -587,7 +587,7 @@
   };
 
   var CSV_COLUMNS = [
-    "rater", "day", "date", "run_code", "height_m", "speed_ms", "sensor_mode",
+    "rater", "day", "date", "run_code", "height_m", "speed_kmh", "sensor_mode",
     "pattern", "Q1", "Q2", "Q3", "Q4", "Q5", "Q6", "Q7", "total", "time_s",
     "time_mmss", "notes", "timestamp", "run_order", "block", "n_scored",
     "time_q1", "time_q2", "time_q3", "time_q4", "time_q5", "time_q6", "time_q7",
@@ -1192,7 +1192,7 @@
   function settingsLine(code) {
     var r = RUNS[code];
     if (!r) return "";
-    return r[2] + " m, " + r[3] + " m/s, " + r[4] + ", " + r[5];
+    return r[2] + " m, " + r[3] + " km/h, " + r[4] + ", " + r[5];
   }
 
   function emptyEntry(code) {
@@ -1486,7 +1486,7 @@
       date: state.date,
       run_code: code,
       height_m: run[2],
-      speed_ms: run[3],
+      speed_kmh: run[3],
       sensor_mode: run[4],
       pattern: run[5],
       Q1: entry.Q1 === 0 || entry.Q1 === "0" ? 0 : (entry.Q1 === "" || entry.Q1 == null ? "" : Number(entry.Q1)),
@@ -1596,7 +1596,7 @@
     out.push("");
     for (var i = 0; i < rows.length; i++) {
       var r = rows[i];
-      out.push(r.run_order + ". " + r.run_code + "  " + r.height_m + " m, " + r.speed_ms + " m/s, " + r.sensor_mode + ", " + r.pattern);
+      out.push(r.run_order + ". " + r.run_code + "  " + r.height_m + " m, " + r.speed_kmh + " km/h, " + r.sensor_mode + ", " + r.pattern);
       out.push("  Q1=" + r.Q1 + " Q2=" + r.Q2 + " Q3=" + r.Q3 + " Q4=" + r.Q4 + " Q5=" + r.Q5 + " Q6=" + r.Q6 + " Q7=" + r.Q7 + "  total=" + r.total + "  time=" + (r.time_mmss || "") + " (" + r.time_s + " s)");
       if (r.notes) out.push("  Notes: " + r.notes);
     }

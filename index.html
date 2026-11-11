@@ -342,6 +342,20 @@
     font-size: 0.92rem;
     margin-top: 4px;
   }
+  .fly-as {
+    display: block;
+    font-weight: 800;
+    color: var(--navy);
+    letter-spacing: 0.01em;
+  }
+  .run-item .fly-as {
+    font-size: 0.95rem;
+    margin-top: 3px;
+  }
+  #runSettings .fly-as {
+    font-size: 1.08rem;
+    margin-top: 6px;
+  }
   @media (min-width: 640px) {
     .score-stack { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
     .score-stack .score-btn { margin: 0; }
@@ -1189,10 +1203,19 @@
     }
   }
 
+  function flyAsLabel(code) {
+    var r = RUNS[code];
+    if (!r) return "";
+    if (r[1] === "Control" || String(r[5]).indexOf("Control") === 0) {
+      return "Fly as: Transect (control, no heat source)";
+    }
+    return "Fly as: " + r[5];
+  }
+
   function settingsLine(code) {
     var r = RUNS[code];
     if (!r) return "";
-    return r[2] + " m, " + r[3] + " km/h, " + r[4] + ", " + r[5];
+    return r[2] + " m, " + r[3] + " km/h, " + r[4];
   }
 
   function emptyEntry(code) {
@@ -1328,9 +1351,10 @@
       html += '<button type="button" class="run-item ' + cls + '" data-code="' + code + '">' +
         '<span class="ord">' + (i + 1) + '</span>' +
         '<span class="meta"><span class="code">' + code + '</span>' +
-        '<div class="set">' + settingsLine(code) + (run ? " · " + run[1] : "") + '</div></span>' +
+        '<div class="set">' + settingsLine(code) + (run ? " · " + run[1] : "") + '</div>' +
+        '<div class="fly-as">' + flyAsLabel(code) + '</div></span>' +
         '<span class="status">' + label + '</span></button>';
-      jumpHtml += '<option value="' + code + '">' + (i + 1) + " · " + code + " · " + settingsLine(code) + "</option>";
+      jumpHtml += '<option value="' + code + '">' + (i + 1) + " · " + code + " · " + settingsLine(code) + " · " + flyAsLabel(code) + "</option>";
     }
     list.innerHTML = html;
     jump.innerHTML = jumpHtml;
@@ -1444,7 +1468,15 @@
     var order = codes.indexOf(code) + 1;
     var run = RUNS[code];
     $("runTitle").textContent = "Run " + order + " of " + codes.length + "  ·  " + code;
-    $("runSettings").textContent = run[1] + " block  ·  " + settingsLine(code);
+    var settingsEl = $("runSettings");
+    settingsEl.textContent = "";
+    var line = document.createElement("div");
+    line.textContent = run[1] + " block  ·  " + settingsLine(code);
+    var fly = document.createElement("div");
+    fly.className = "fly-as";
+    fly.textContent = flyAsLabel(code);
+    settingsEl.appendChild(line);
+    settingsEl.appendChild(fly);
     if (!$("questions").hasChildNodes()) renderQuestions();
     fillRunForm(getEntry(code));
     persistScores();
@@ -1594,7 +1626,7 @@
     out.push("");
     for (var i = 0; i < rows.length; i++) {
       var r = rows[i];
-      out.push(r.run_order + ". " + r.run_code + "  " + r.height_m + " m, " + r.speed_kmh + " km/h, " + r.sensor_mode + ", " + r.pattern);
+      out.push(r.run_order + ". " + r.run_code + "  " + r.height_m + " m, " + r.speed_kmh + " km/h, " + r.sensor_mode + "  ·  " + flyAsLabel(r.run_code));
       out.push("  Q1=" + r.Q1 + " Q2=" + r.Q2 + " Q3=" + r.Q3 + " Q4=" + r.Q4 + " Q5=" + r.Q5 + " Q6=" + r.Q6 + " Q7=" + r.Q7 + "  total=" + r.total + "  time=" + (r.time_mmss || "") + " (" + r.time_s + " s)");
       if (r.notes) out.push("  Notes: " + r.notes);
     }

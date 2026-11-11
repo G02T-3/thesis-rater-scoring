@@ -437,7 +437,7 @@
       <p class="banner">Score only the questions I say apply. Leave the others unselected. Blank is not the same as 0.</p>
       <div id="questions"></div>
       <div class="card">
-        <label class="label" for="runTime">Time to answer (mm:ss) (I will enter this, optional)</label>
+        <label class="label" for="runTime">Total time for all questions (mm:ss), filled in at the end of the run</label>
         <input id="runTime" class="time-input time-empty" type="text" inputmode="numeric" pattern="[0-9:]*" maxlength="8" autocomplete="off" enterkeyhint="done" aria-label="Time to answer in minutes and seconds" value="00:00" data-digits="">
         <label class="label" for="runNotes" style="margin-top:10px">Your other comments</label>
         <textarea id="runNotes" placeholder="Location, direction, which source, or any other comment"></textarea>
@@ -1003,7 +1003,7 @@
     writeTimeToEntry(entry, "time_s", "time_mmss", $("runTime"));
     var i;
     for (i = 1; i <= 7; i++) {
-      writeTimeToEntry(entry, "time_q" + i, "time_q" + i + "_mmss", $("time_Q" + i));
+      if ($("time_Q" + i)) writeTimeToEntry(entry, "time_q" + i, "time_q" + i + "_mmss", $("time_Q" + i));
     }
     touchEntry(entry, true);
     persistScores();
@@ -1358,8 +1358,6 @@
       }
       html += "</div>";
       html += '<div class="q-extra">';
-      html += '<div class="time-wrap"><label class="label" for="time_' + q.id + '">Time (mm:ss)</label>' +
-        '<input id="time_' + q.id + '" class="time-input time-empty" type="text" inputmode="numeric" pattern="[0-9:]*" maxlength="8" autocomplete="off" enterkeyhint="next" aria-label="Time for ' + q.id + ' in minutes and seconds" value="00:00" data-digits="" data-time="' + q.id + '"></div>';
       html += '<div class="notes-wrap"><label class="label" for="notes_' + q.id + '">Answer or notes</label>' +
         '<input id="notes_' + q.id + '" type="text" data-notes="' + q.id + '" placeholder="e.g. location, direction"></div>';
       html += "</div></div>";
@@ -1418,7 +1416,7 @@
   function fillRunForm(entry) {
     paintScores(entry);
     for (var i = 1; i <= 7; i++) {
-      fillTimeWidget($("time_Q" + i), entry["time_q" + i], entry["time_q" + i + "_mmss"]);
+      if ($("time_Q" + i)) fillTimeWidget($("time_Q" + i), entry["time_q" + i], entry["time_q" + i + "_mmss"]);
       $("notes_Q" + i).value = entry["notes_q" + i] || "";
     }
     fillTimeWidget($("runTime"), entry.time_s, entry.time_mmss);
@@ -1430,7 +1428,7 @@
     writeTimeToEntry(entry, "time_s", "time_mmss", $("runTime"));
     entry.notes = $("runNotes").value;
     for (var i = 1; i <= 7; i++) {
-      writeTimeToEntry(entry, "time_q" + i, "time_q" + i + "_mmss", $("time_Q" + i));
+      if ($("time_Q" + i)) writeTimeToEntry(entry, "time_q" + i, "time_q" + i + "_mmss", $("time_Q" + i));
       entry["notes_q" + i] = $("notes_Q" + i).value;
     }
     entry.timestamp = nowStamp();

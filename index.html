@@ -400,7 +400,6 @@
           <button type="button" class="choice day-pick" aria-pressed="false" data-day="1">Day 1</button>
           <button type="button" class="choice day-pick" aria-pressed="false" data-day="2">Day 2</button>
           <button type="button" class="choice day-pick" aria-pressed="false" data-day="3">Day 3</button>
-          <button type="button" class="choice day-pick" aria-pressed="false" data-day="4">Day 4 (palettes)</button>
         </div>
         <label class="label" for="trialDate">Date</label>
         <input id="trialDate" type="date" style="margin-bottom:16px">
@@ -563,9 +562,7 @@
     }
   ];
 
-  /* Code, block, height_m, speed_kmh, sensor_mode, pattern[, palette]
-     T runs: Day 4 exploratory thermal palette trial (High-Res gain), kept
-     separate from the main trial (days 1 to 3). */
+  /* Code, block, height_m, speed_kmh, sensor_mode, pattern */
   var RUNS = {
     D01: ["D01", "Detection", "15", "10", "Thermal", "Transect"],
     D02: ["D02", "Detection", "15", "10", "Wide RGB", "Transect"],
@@ -590,28 +587,17 @@
     P03: ["P03", "Pattern", "45", "~5", "Thermal", "Hover-orbit"],
     P04: ["P04", "Pattern", "45", "10", "Thermal", "Lawnmower grid"],
     C01: ["C01", "Control", "30", "10", "Thermal", "Control transect"],
-    C02: ["C02", "Control", "45", "10", "Split", "Control transect"],
-    T01: ["T01", "Palette", "30", "10", "Thermal", "Transect", "WhiteHot"],
-    T02: ["T02", "Palette", "30", "10", "Thermal", "Transect", "BlackHot"],
-    T03: ["T03", "Palette", "30", "10", "Thermal", "Transect", "Tint"],
-    T04: ["T04", "Palette", "30", "10", "Thermal", "Transect", "IronRed"],
-    T05: ["T05", "Palette", "30", "10", "Thermal", "Transect", "HotIron"],
-    T06: ["T06", "Palette", "30", "10", "Thermal", "Transect", "Arctic"],
-    T07: ["T07", "Palette", "30", "10", "Thermal", "Transect", "Medical"],
-    T08: ["T08", "Palette", "30", "10", "Thermal", "Transect", "Fulgurite"],
-    T09: ["T09", "Palette", "30", "10", "Thermal", "Transect", "Rainbow1"],
-    T10: ["T10", "Palette", "30", "10", "Thermal", "Transect", "Rainbow2"]
+    C02: ["C02", "Control", "45", "10", "Split", "Control transect"]
   };
 
-  /* Flying orders: seeds 2026, 2027, 2028 (days 1 to 3); seed 2029 (Day 4, T runs) */
+  /* Flying orders: seeds 2026, 2027, 2028 (days 1 to 3) */
   var DAYS = {
     1: ["D05","D12","D07","D06","C01","P03","D03","D09","D02","D01","P02","P01",
         "D10","V03","V01","V04","V02","V06","D08","C02","P04","V05","D11","D04"],
     2: ["C02","D08","D09","P02","D07","P03","V05","C01","D02","V02","D12","D05",
         "P04","D10","V04","V06","P01","D06","V01","D11","D01","D03","V03","D04"],
     3: ["D03","P02","D04","D08","D02","V03","V04","V01","D11","V05","P01","V06",
-        "V02","D10","D05","D07","P04","C01","D09","P03","C02","D01","D06","D12"],
-    4: ["T01","T09","T05","T07","T04","T02","T06","T03","T10","T08"]
+        "V02","D10","D05","D07","P04","C01","D09","P03","C02","D01","D06","D12"]
   };
 
   var CSV_COLUMNS = [
@@ -624,16 +610,6 @@
     "notes_q1", "notes_q2", "notes_q3", "notes_q4", "notes_q5", "notes_q6", "notes_q7",
     "status", "rater_name", "code_id", "device_id", "integrity_tag"
   ];
-
-  /* Day 4 exports add a palette column just before integrity_tag.
-     Day 1 to 3 exports keep exactly the columns above. */
-  function exportColumns() {
-    if (String(state.day) !== "4") return CSV_COLUMNS;
-    var cols = CSV_COLUMNS.slice(0, CSV_COLUMNS.length - 1);
-    cols.push("palette");
-    cols.push("integrity_tag");
-    return cols;
-  }
 
   var SETUP_KEY = "gorrieTianRaterScores.setup.v1";
   var STORE_PREFIX = "gorrieTianRaterScores.v1.";
@@ -889,7 +865,7 @@
   }
 
   function csvDataColumns() {
-    return exportColumns().filter(function (c) { return c !== "integrity_tag"; });
+    return CSV_COLUMNS.filter(function (c) { return c !== "integrity_tag"; });
   }
 
   function makeIntegrityTag(csvBody) {
@@ -901,7 +877,7 @@
     var body = toCSV(rows, dataCols);
     var tag = makeIntegrityTag(body);
     for (var i = 0; i < rows.length; i++) rows[i].integrity_tag = tag;
-    return { csv: toCSV(rows, exportColumns()), tag: tag };
+    return { csv: toCSV(rows, CSV_COLUMNS), tag: tag };
   }
 
 
@@ -1233,7 +1209,7 @@
     if (r[1] === "Control" || String(r[5]).indexOf("Control") === 0) {
       return "Fly as: Transect (control, no heat source)";
     }
-    return "Fly as: " + r[5] + (r[6] ? "  ·  Palette: " + r[6] : "");
+    return "Fly as: " + r[5];
   }
 
   function settingsLine(code) {
@@ -1543,7 +1519,6 @@
       speed_kmh: run[3],
       sensor_mode: run[4],
       pattern: run[5],
-      palette: run[6] || "",
       Q1: entry.Q1 === 0 || entry.Q1 === "0" ? 0 : (entry.Q1 === "" || entry.Q1 == null ? "" : Number(entry.Q1)),
       Q2: entry.Q2 === 0 || entry.Q2 === "0" ? 0 : (entry.Q2 === "" || entry.Q2 == null ? "" : Number(entry.Q2)),
       Q3: entry.Q3 === 0 || entry.Q3 === "0" ? 0 : (entry.Q3 === "" || entry.Q3 == null ? "" : Number(entry.Q3)),

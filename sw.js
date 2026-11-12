@@ -1,5 +1,5 @@
-/* NWUFPA Matrice 4T trial scoring. Versioned cache: rater-scoring-v2026-11-12-1 */
-const CACHE_NAME = "rater-scoring-v2026-11-12-1";
+/* NWUFPA Matrice 4T trial scoring. Versioned cache: rater-scoring-v2026-11-13-1 */
+const CACHE_NAME = "rater-scoring-v2026-11-13-1";
 const PRECACHE = [
   "./",
   "./index.html",
